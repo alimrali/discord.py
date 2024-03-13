@@ -1,117 +1,69 @@
-discord.py
-==========
+import discord
+from discord.ext import commands
 
-.. image:: https://discord.com/api/guilds/336642139381301249/embed.png
-   :target: https://discord.gg/r3sSKJJ
-   :alt: Discord server invite
-.. image:: https://img.shields.io/pypi/v/discord.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI version info
-.. image:: https://img.shields.io/pypi/pyversions/discord.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI supported Python versions
+bot = commands.Bot(command_prefix='!')
 
-A modern, easy to use, feature-rich, and async ready API wrapper for Discord written in Python.
+allowed_ranks = ["عسكري"]
 
-Key Features
--------------
+@bot.command()
+async def create_military_id(ctx):
+    user_roles = [role.name for role in ctx.author.roles]
+    if not any(role in allowed_ranks for role in user_roles):
+        await ctx.send("ليس لديك الصلاحية لاستخدام هذا الأمر.")
+        return
 
-- Modern Pythonic API using ``async`` and ``await``.
-- Proper rate limit handling.
-- Optimised in both speed and memory.
+    await ctx.author.send("يرجى إرسال الاسم:")
+    name = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-Installing
-----------
+    await ctx.author.send("يرجى إرسال اسم المدينة:")
+    city = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-**Python 3.8 or higher is required**
+    await ctx.author.send("يرجى إرسال تاريخ الميلاد (يوم/شهر/سنة):")
+    dob = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-To install the library without full voice support, you can just run the following command:
+    await ctx.author.send("يرجى إرسال التسلسل العسكري:")
+    military_id = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-.. code:: sh
+    await ctx.author.send("يرجى إرسال الرتبة:")
+    rank = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-    # Linux/macOS
-    python3 -m pip install -U discord.py
+    await ctx.author.send("يرجى إرسال رابط الصورة (اختياري):")
+    image_url = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
 
-    # Windows
-    py -3 -m pip install -U discord.py
+    if image_url.content.lower() == 'skip':
+        image_url = None
+    else:
+        image_url = image_url.content
 
-Otherwise to get voice support you should run the following command:
+    await create_card(ctx, name.content, city.content, dob.content, military_id.content, rank.content, image_url)
 
-.. code:: sh
+async def create_card(ctx, name, city, dob, military_id, rank, image_url=None):
+    if image_url is None:
+        cover_image = "https://example.com/military_cover_image.png"
+    else:
+        cover_image = image_url
 
-    # Linux/macOS
-    python3 -m pip install -U "discord.py[voice]"
+    embed = discord.Embed(title="بطاقة عسكرية", description=f"Name: {name}\nCity: {city}\nDate of Birth: {dob}\nMilitary ID: {military_id}\nRank: {rank}", color=0x4169E1)
 
-    # Windows
-    py -3 -m pip install -U discord.py[voice]
+    embed.set_image(url="https://example.com/watermark.png")
 
+    embed.set_footer(text="وزارة الداخلية")
 
-To install the development version, do the following:
+    embed.set_thumbnail(url=cover_image)
 
-.. code:: sh
+    officer_ranks = ["ملازم", "ملازم أول", "نقيب", "رائد", "مقدم", "عقيد", "عميد", "لواء", "فريق"]
+    if rank in officer_ranks:
+        embed.title = "بطاقة ضباط"
 
-    $ git clone https://github.com/Rapptz/discord.py
-    $ cd discord.py
-    $ python3 -m pip install -U .[voice]
+    await ctx.author.send(embed=embed)
 
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    if message.content.lower() == "ارسال نموذج انشاء بطاقة عسكرية":
+        await create_military_id(message.channel)
 
-Optional Packages
-~~~~~~~~~~~~~~~~~~
+    await bot.process_commands(message)
 
-* `PyNaCl <https://pypi.org/project/PyNaCl/>`__ (for voice support)
-
-Please note that when installing voice support on Linux, you must install the following packages via your favourite package manager (e.g. ``apt``, ``dnf``, etc) before running the above commands:
-
-* libffi-dev (or ``libffi-devel`` on some systems)
-* python-dev (e.g. ``python3.8-dev`` for Python 3.8)
-
-Quick Example
---------------
-
-.. code:: py
-
-    import discord
-
-    class MyClient(discord.Client):
-        async def on_ready(self):
-            print('Logged on as', self.user)
-
-        async def on_message(self, message):
-            # don't respond to ourselves
-            if message.author == self.user:
-                return
-
-            if message.content == 'ping':
-                await message.channel.send('pong')
-
-    intents = discord.Intents.default()
-    intents.message_content = True
-    client = MyClient(intents=intents)
-    client.run('token')
-
-Bot Example
-~~~~~~~~~~~~~
-
-.. code:: py
-
-    import discord
-    from discord.ext import commands
-
-    intents = discord.Intents.default()
-    intents.message_content = True
-    bot = commands.Bot(command_prefix='>', intents=intents)
-
-    @bot.command()
-    async def ping(ctx):
-        await ctx.send('pong')
-
-    bot.run('token')
-
-You can find more examples in the examples directory.
-
-Links
-------
-
-- `Documentation <https://discordpy.readthedocs.io/en/latest/index.html>`_
-- `Official Discord Server <https://discord.gg/r3sSKJJ>`_
-- `Discord API <https://discord.gg/discord-api>`_
+bot.run('MTIxNzQ2MTYwNDcyNDExNzU5NQ.Gmo7R8.VtjZq4fr9Cb8kyWiOA0d8m4FXQNHQLl1t_tiUs')
